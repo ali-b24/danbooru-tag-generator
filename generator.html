@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Danbooru Tag Prompt Builder</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, #0c0c0f 0%, #1a1a2e 50%, #16213e 100%);
+      color: #f8fafc;
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: auto;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      letter-spacing: -0.02em;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.3)); }
+      to { filter: drop-shadow(0 0 35px rgba(102, 126, 234, 0.6)); }
+    }
+
+    .section {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .section:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .section:hover::before {
+      left: 100%;
+    }
+
+    label, h2 {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #e2e8f0;
+      font-size: 1.1rem;
+      letter-spacing: 0.025em;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      background: rgba(15, 23, 42, 0.6);
+      color: #f8fafc;
+      margin-bottom: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      box-shadow: 
+        0 0 0 4px rgba(59, 130, 246, 0.2),
+        0 8px 25px rgba(59, 130, 246, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .search-hint {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    #tag-list {
+      max-height: 350px;
+      overflow-y: auto;
+      padding: 15px;
+      border-radius: 15px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    #tag-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #tag-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    #tag-list::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 4px;
+    }
+
+    .tag-item {
+      margin: 8px 0;
+      padding: 12px 15px;
+      border-radius: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tag-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(5px);
+    }
+
+    .tag-item.highlight {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      animation: pulse 2s infinite;
+      transform: translateX(8px) scale(1.02);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+      50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+    }
+
+    .tag-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .tag-name {
+      color: #e2e8f0;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .tag-item.highlight .tag-name {
+      color: #ffffff;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+    }
+
+    .tag-count {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+    }
+
+    .tag-category {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .category-general { background: #0ea5e9; }
+    .category-artist { background: #ef4444; }
+    .category-copyright { background: #a855f7; }
+    .category-character { background: #22c55e; }
+    .category-meta { background: #f59e0b; }
+
+    .loading {
+      text-align: center;
+      color: #94a3b8;
+      padding: 20px;
+      font-style: italic;
+    }
+
+    .api-status {
+      font-size: 0.85rem;
+      color: #10b981;
+      padding: 8px 15px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+      margin-bottom: 15px;
+    }
+
+    #selected-tags {
+      min-height: 80px;
+      padding: 20px;
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      border-radius: 15px;
+      background: 
+        linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+      margin-bottom: 25px;
+      color: #cbd5e1;
+      word-wrap: break-word;
+      line-height: 1.6;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #selected-tags:not(:empty) {
+      border-color: rgba(16, 185, 129, 0.6);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      margin: 10px 15px 20px 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+    }
+
+    button:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button#clear-selected {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+    button#clear-selected:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+    }
+
+    button#remove-last {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    button#remove-last:hover {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
+    }
+
+    textarea {
+      resize: vertical;
+      height: 140px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .keyboard-hint {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 15px 0 25px 0;
+      font-size: 0.9rem;
+      color: #a5b4fc;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    .keyboard-hint::before {
+      content: '💡';
+      margin-right: 8px;
+      font-size: 1.2em;
+    }
+
+    .keyboard-hint strong {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    #copy-success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-top: 15px;
+      color: #34d399;
+      font-weight: 500;
+      font-size: 0.9rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      animation: slideInSuccess 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideInSuccess {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .floating-particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .particle {
+      position: absolute;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+    }
+
+    .dual-section {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .search-section {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .selected-section {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 968px) {
+      .dual-section {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .search-section,
+      .selected-section {
+        margin-bottom: 20px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 20px 15px; }
+      h1 { font-size: 2.5rem; }
+      .section { padding: 20px; margin-bottom: 20px; }
+      button { padding: 14px 20px; margin: 8px 8px 15px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-particles" id="particles"></div>
+  
+  <h1>✨ Danbooru Tag Builder</h1>
+
+  <div class="dual-section">
+    <div class="section search-section">
+      <label for="search">🔍 Search Danbooru Tags</label>
+      <div class="api-status">🌐 Connected to Danbooru API</div>
+      <input type="text" id="search" placeholder="Start typing to search tags...">
+      <div class="keyboard-hint">
+        <strong>↑↓</strong> Navigate • <strong>TAB</strong> Add highlighted • <strong>ENTER</strong> Add custom
+      </div>
+      <div id="tag-list">
+        <div class="loading">Type to search Danbooru tags...</div>
+      </div>
+    </div>
+
+    <div class="section selected-section">
+      <h2>🏷️ Selected Tags</h2>
+      <div id="selected-tags">No tags selected yet</div>
+      <input type="text" id="manual-entry" placeholder="Add custom tags manually...">
+      <button id="generate">🚀 Generate Prompt</button>
+      <button id="remove-last">↩️ Remove Last</button>
+      <button id="clear-selected">🗑️ Clear All</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <label for="prompt">📝 Generated Prompt</label>
+    <textarea id="prompt" readonly placeholder="Your beautiful prompt will appear here..."></textarea>
+    <button id="copy-prompt">📋 Copy to Clipboard</button>
+    <div id="copy-success" style="display: none;">✅ Prompt copied to clipboard successfully!</div>
+  </div>
+
+  <script>
+    // Create floating particles
+    function createParticles() {
+      const particles = document.getElementById('particles');
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.width = particle.style.height = Math.random() * 4 + 2 + 'px';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+        particles.appendChild(particle);
+      }
+    }
+    createParticles();
+
+    const selected = new Set();
+    const customEntries = new Set();
+    let filteredTags = [];
+    let selectedIndex = 0;
+    let tagOrder = [];
+    let searchTimeout = null;
+
+    const categoryMap = {
+      0: 'general',
+      1: 'artist',
+      3: 'copyright',
+      4: 'character',
+      5: 'meta'
+    };
+
+    function normalize(str) {
+      return str.toLowerCase().replace(/_/g, ' ');
+    }
+
+    async function searchDanbooruTags(query) {
+      if (!query || query.length < 2) {
+        return [];
+      }
+
+      try {
+        const response = await fetch(
+          `https://danbooru.donmai.us/tags.json?search[name_matches]=*${encodeURIComponent(query)}*&search[order]=count&limit=50`
+        );
+        
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+
+        const tags = await response.json();
+        return tags;
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+        return [];
+      }
+    }
+
+    function renderList(tags) {
+      const listEl = document.getElementById('tag-list');
+      
+      if (tags.length === 0) {
+        listEl.innerHTML = '<div class="loading">No tags found. Try a different search.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      filteredTags = tags;
+
+      if (selectedIndex >= filteredTags.length) {
+        selectedIndex = 0;
+      }
+
+      for (let i = 0; i < tags.length; i++) {
+        const tag = tags[i];
+        const item = document.createElement('div');
+        item.className = 'tag-item';
+        
+        if (i === selectedIndex) {
+          item.classList.add('highlight');
+        }
+
+        const tagInfo = document.createElement('div');
+        tagInfo.className = 'tag-info';
+
+        const categoryDot = document.createElement('div');
+        categoryDot.className = `tag-category category-${categoryMap[tag.category] || 'general'}`;
+
+        const tagName = document.createElement('span');
+        tagName.className = 'tag-name';
+        tagName.textContent = tag.name;
+
+        const tagCount = document.createElement('span');
+        tagCount.className = 'tag-count';
+        tagCount.textContent = tag.post_count ? `${tag.post_count.toLocaleString()} posts` : '';
+
+        tagInfo.appendChild(categoryDot);
+        tagInfo.appendChild(tagName);
+        
+        item.appendChild(tagInfo);
+        if (tag.post_count) {
+          item.appendChild(tagCount);
+        }
+
+        item.addEventListener('click', () => {
+          addTag(tag.name);
+        });
+
+        listEl.appendChild(item);
+      }
+    }
+
+    function renderSelected() {
+      const selDiv = document.getElementById('selected-tags');
+      const all = Array.from(selected).concat(Array.from(customEntries));
+      if (all.length === 0) {
+        selDiv.textContent = 'No tags selected yet';
+        selDiv.style.color = '#94a3b8';
+      } else {
+        selDiv.textContent = all.join(', ');
+        selDiv.style.color = '#e2e8f0';
+      }
+    }
+
+    function addTag(tagName) {
+      if (!selected.has(tagName)) {
+        selected.add(tagName);
+        tagOrder.push({ type: 'selected', value: tagName });
+        renderSelected();
+      }
+    }
+
+    function addSelectedTag() {
+      if (filteredTags.length > selectedIndex) {
+        const tag = filteredTags[selectedIndex];
+        addTag(tag.name);
+        return true;
+      }
+      return false;
+    }
+
+    function addCustomTag(value) {
+      if (value.trim()) {
+        const cleanValue = value.trim();
+        if (!customEntries.has(cleanValue)) {
+          customEntries.add(cleanValue);
+          tagOrder.push({ type: 'custom', value: cleanValue });
+        }
+        renderSelected();
+        return true;
+      }
+      return false;
+    }
+
+    function removeLastTag() {
+      if (tagOrder.length > 0) {
+        const lastEntry = tagOrder.pop();
+        
+        if (lastEntry.type === 'selected') {
+          selected.delete(lastEntry.value);
+        } else if (lastEntry.type === 'custom') {
+          customEntries.delete(lastEntry.value);
+        }
+        
+        renderSelected();
+        return true;
+      }
+      return false;
+    }
+
+    function generatePrompt() {
+      const all = Array.from(selected).concat(Array.from(customEntries));
+      const cleaned = all.map(tag => tag.replace(/_/g, ' '));
+      document.getElementById('prompt').value = cleaned.join(', ');
+    }
+
+    function clearSelected() {
+      selected.clear();
+      customEntries.clear();
+      tagOrder = [];
+      renderSelected();
+      document.getElementById('prompt').value = '';
+    }
+
+    // Search input with debouncing
+    const searchInput = document.getElementById('search');
+    searchInput.addEventListener('input', e => {
+      const query = e.target.value.trim();
+      selectedIndex = 0;
+
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+
+      if (query.length < 2) {
+        document.getElementById('tag-list').innerHTML = '<div class="loading">Type at least 2 characters to search...</div>';
+        return;
+      }
+
+      document.getElementById('tag-list').innerHTML = '<div class="loading">🔍 Searching Danbooru...</div>';
+
+      searchTimeout = setTimeout(async () => {
+        const tags = await searchDanbooruTags(query);
+        renderList(tags);
+      }, 500);
+    });
+    
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (selectedIndex > 0) {
+          selectedIndex--;
+          renderList(filteredTags);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (selectedIndex < filteredTags.length - 1) {
+          selectedIndex++;
+          renderList(filteredTags);
+        }
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        if (addSelectedTag()) {
+          searchInput.value = '';
+          selectedIndex = 0;
+          document.getElementById('tag-list').innerHTML = '<div class="loading">Type to search Danbooru tags...</div>';
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (addCustomTag(searchInput.value)) {
+          searchInput.value = '';
+          selectedIndex = 0;
+          document.getElementById('tag-list').innerHTML = '<div class="loading">Type to search Danbooru tags...</div>';
+        }
+      }
+    });
+
+    const manual = document.getElementById('manual-entry');
+    manual.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && manual.value.trim()) {
+        e.preventDefault();
+        addCustomTag(manual.value);
+        manual.value = '';
+      }
+    });
+
+    document.getElementById('generate').addEventListener('click', generatePrompt);
+    document.getElementById('remove-last').addEventListener('click', removeLastTag);
+    document.getElementById('clear-selected').addEventListener('click', clearSelected);
+
+    document.getElementById('copy-prompt').addEventListener('click', () => {
+      const prompt = document.getElementById('prompt').value;
+      const successMsg = document.getElementById('copy-success');
+      
+      if (prompt.trim()) {
+        navigator.clipboard.writeText(prompt).then(() => {
+          const btn = document.getElementById('copy-prompt');
+          const originalText = btn.textContent;
+          btn.textContent = '✅ Copied!';
+          btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+          
+          successMsg.style.display = 'block';
+          
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            successMsg.style.display = 'none';
+          }, 5000);
+        }, err => {
+          alert('Failed to copy prompt to clipboard.');
+        });
+      } else {
+        alert('No prompt to copy - generate one first!');
+      }
+    });
+  </script>
+</body>
+</html>
