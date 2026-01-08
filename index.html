@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Danbooru Tag Prompt Builder</title>
+  <title>Danbooru Tag Prompt Builder + Tile Coordinates</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
@@ -435,6 +435,53 @@
       margin-bottom: 0;
     }
 
+    /* Tile Coordinates Styles */
+    .tile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .tile-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .tile-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .tile-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    .tile-data {
+      background: rgba(15, 23, 42, 0.6);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 11px;
+      margin-bottom: 12px;
+      word-break: break-all;
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .tile-card button {
+      width: 100%;
+      margin: 0;
+      padding: 12px;
+      font-size: 14px;
+    }
+
     @media (max-width: 968px) {
       .dual-section {
         flex-direction: column;
@@ -444,6 +491,10 @@
       .search-section,
       .selected-section {
         margin-bottom: 20px;
+      }
+
+      .tile-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -490,6 +541,46 @@
     <div id="copy-success" style="display: none;">✅ Prompt copied to clipboard successfully!</div>
   </div>
 
+  <!-- Tile Coordinates Section -->
+  <div class="section">
+    <h2>🎯 Tile Coordinates</h2>
+    
+    <div style="margin-bottom: 25px;">
+      <label style="font-size: 1rem; margin-bottom: 10px;">Full View (1.0x Zoom)</label>
+      <div class="tile-card">
+        <div class="tile-data">{ "height": 1024, "minX": 0, "minY": 0, "scaleFactorBy120": 120, "width": 1024 }</div>
+        <button onclick="copyTileCoord(4, this)">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+
+    <label style="font-size: 1rem; margin-bottom: 15px;">1.6x Zoom (2x2 Grid)</label>
+    <div class="tile-grid">
+      <div class="tile-card">
+        <div class="tile-title">Tile 1 (Top-Left)</div>
+        <div class="tile-data">{ "height": 1024, "minX": 0, "minY": 0, "scaleFactorBy120": 192, "width": 1024 }</div>
+        <button onclick="copyTileCoord(0, this)">📋 Copy to Clipboard</button>
+      </div>
+
+      <div class="tile-card">
+        <div class="tile-title">Tile 2 (Top-Right)</div>
+        <div class="tile-data">{ "height": 1024, "minX": 384, "minY": 0, "scaleFactorBy120": 192, "width": 1024 }</div>
+        <button onclick="copyTileCoord(1, this)">📋 Copy to Clipboard</button>
+      </div>
+
+      <div class="tile-card">
+        <div class="tile-title">Tile 3 (Bottom-Left)</div>
+        <div class="tile-data">{ "height": 1024, "minX": 0, "minY": 384, "scaleFactorBy120": 192, "width": 1024 }</div>
+        <button onclick="copyTileCoord(2, this)">📋 Copy to Clipboard</button>
+      </div>
+
+      <div class="tile-card">
+        <div class="tile-title">Tile 4 (Bottom-Right)</div>
+        <div class="tile-data">{ "height": 1024, "minX": 384, "minY": 384, "scaleFactorBy120": 192, "width": 1024 }</div>
+        <button onclick="copyTileCoord(3, this)">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Create floating particles
     function createParticles() {
@@ -506,6 +597,7 @@
     }
     createParticles();
 
+    // Danbooru Tag Builder Logic
     const selected = new Set();
     const customEntries = new Set();
     let filteredTags = [];
@@ -696,74 +788,4 @@
       }, 500);
     });
     
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (selectedIndex > 0) {
-          selectedIndex--;
-          renderList(filteredTags);
-        }
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (selectedIndex < filteredTags.length - 1) {
-          selectedIndex++;
-          renderList(filteredTags);
-        }
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        if (addSelectedTag()) {
-          searchInput.value = '';
-          selectedIndex = 0;
-          document.getElementById('tag-list').innerHTML = '<div class="loading">Type to search Danbooru tags...</div>';
-        }
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (addCustomTag(searchInput.value)) {
-          searchInput.value = '';
-          selectedIndex = 0;
-          document.getElementById('tag-list').innerHTML = '<div class="loading">Type to search Danbooru tags...</div>';
-        }
-      }
-    });
-
-    const manual = document.getElementById('manual-entry');
-    manual.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && manual.value.trim()) {
-        e.preventDefault();
-        addCustomTag(manual.value);
-        manual.value = '';
-      }
-    });
-
-    document.getElementById('generate').addEventListener('click', generatePrompt);
-    document.getElementById('remove-last').addEventListener('click', removeLastTag);
-    document.getElementById('clear-selected').addEventListener('click', clearSelected);
-
-    document.getElementById('copy-prompt').addEventListener('click', () => {
-      const prompt = document.getElementById('prompt').value;
-      const successMsg = document.getElementById('copy-success');
-      
-      if (prompt.trim()) {
-        navigator.clipboard.writeText(prompt).then(() => {
-          const btn = document.getElementById('copy-prompt');
-          const originalText = btn.textContent;
-          btn.textContent = '✅ Copied!';
-          btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-          
-          successMsg.style.display = 'block';
-          
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-            successMsg.style.display = 'none';
-          }, 5000);
-        }, err => {
-          alert('Failed to copy prompt to clipboard.');
-        });
-      } else {
-        alert('No prompt to copy - generate one first!');
-      }
-    });
-  </script>
-</body>
-</html>
+    searchInput.addEventListener('keydown', e
